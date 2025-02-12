@@ -226,7 +226,7 @@ function captureAndVerifyImage(frm, popup) {
     frappe.call({
         method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face",
         args: {
-            laborer: frm.doc.laborer,
+            laborer: frm.doc.attendance_laborer,
             captured_image: capturedImage
         },
         callback: function (r) {
