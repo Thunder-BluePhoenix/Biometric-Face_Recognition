@@ -288,18 +288,19 @@ async function captureAndVerifyImage(frm, popup, stream) {
         loaderElement.style.display = "block";
         popup.get_primary_btn().prop('disabled', true);
 
-        // Verify face
+        // Verify face and save document
         return new Promise((resolve, reject) => {
             frappe.call({
-                method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face",
+                method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face_and_save",
                 args: {
                     laborer: frm.doc.attendance_laborer,
-                    captured_image: imageData
+                    captured_image: imageData,
+                    doc_data: frm.doc.name || null
                 },
                 callback: function(r) {
-                    if (r.message) {
+                    if (r.message && r.message.success) {
                         frappe.show_alert({
-                            message: "Face verified successfully",
+                            message: r.message.message,
                             indicator: 'green'
                         });
                         
@@ -309,28 +310,16 @@ async function captureAndVerifyImage(frm, popup, stream) {
                         // Close the popup
                         popup.hide();
                         
-                        // Enable form saving
-                        frappe.validated = true;
-                        
-                        // Use timeout to ensure popup is closed before saving
-                        setTimeout(() => {
-                            // Save the form
-                            frm.save().then(() => {
-                                frappe.show_alert({
-                                    message: "Record saved successfully",
-                                    indicator: 'green'
-                                });
-                            }).catch((err) => {
-                                frappe.show_alert({
-                                    message: "Error saving record: " + (err.message || "Unknown error"),
-                                    indicator: 'red'
-                                });
-                            });
-                        }, 100);
+                        // Refresh the form
+                        frm.refresh();
                         
                         resolve();
                     } else {
                         handleVerificationFailure(popup, video, capturedImage, loaderElement, stream);
+                        frappe.show_alert({
+                            message: r.message.message || "Verification failed. Please try again.",
+                            indicator: 'red'
+                        });
                         resolve();
                     }
                 },
@@ -349,6 +338,7 @@ async function captureAndVerifyImage(frm, popup, stream) {
         frappe.throw("Error capturing image: " + error.message);
     }
 }
+
 
 // Update the cleanup function to be more thorough
 function cleanupCamera(stream) {

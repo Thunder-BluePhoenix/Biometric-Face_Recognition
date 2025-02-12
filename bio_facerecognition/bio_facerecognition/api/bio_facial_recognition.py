@@ -168,3 +168,38 @@ def face_match(img1, img2):
         frappe.log_error(f"Face matching error: {str(e)}")
         return False
 
+
+
+@frappe.whitelist()
+def verify_face_and_save(laborer, captured_image, doc_data):
+    """Verify face and save document if verification is successful."""
+    try:
+        # First verify the face
+        is_verified = verify_face(laborer, captured_image)
+        
+        if is_verified:
+            # Get the document to save
+            doc = frappe.get_doc("Laborers attendance log", doc_data)
+            
+            # Save the document
+            doc.save(ignore_permissions=True)
+            
+            frappe.db.commit()
+            
+            return {
+                "success": True,
+                "message": "Face verified and attendance logged successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Face verification failed"
+            }
+            
+    except Exception as e:
+        frappe.log_error(f"Face verification and save error: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Error during process: {str(e)}"
+        }
+
