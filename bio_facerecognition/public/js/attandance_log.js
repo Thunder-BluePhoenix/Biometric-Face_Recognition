@@ -178,6 +178,11 @@ function openCameraPopup(frm) {
                 fieldname: "camera",
                 fieldtype: "HTML",
                 options: '<video id="camera" width="320" height="240" autoplay></video>'
+            },
+            {
+                fieldname: "captured_image_display",
+                fieldtype: "HTML",
+                options: '<img id="captured_image" style="display:none; max-width:320px; max-height:240px; border:1px solid #ddd; margin-top:10px;"/>'
             }
         ],
         primary_action_label: "Capture & Verify",
@@ -219,9 +224,12 @@ function captureAndVerifyImage(frm, popup) {
     let context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    let capturedImage = canvas.toDataURL("image/png"); // Base64 encoded image
+    // Convert captured image to Base64 and display it
+    let capturedImage = canvas.toDataURL("image/png");
+    document.querySelector("#captured_image").src = capturedImage;
+    document.querySelector("#captured_image").style.display = "block";
 
-    // Call the server-side function to verify the face
+    // Send image to the server for verification
     frappe.call({
         method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face",
         args: {
@@ -232,12 +240,10 @@ function captureAndVerifyImage(frm, popup) {
             if (r.message) {
                 frappe.msgprint("Face verified successfully.");
                 popup.hide();
-                frm.save();  // Save the document if verification is successful
+                frm.save();  // Save the document
             } else {
                 frappe.throw("Face verification failed. Please try again.");
             }
         }
     });
 }
-
-

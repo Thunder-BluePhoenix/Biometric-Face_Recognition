@@ -45,14 +45,11 @@ import frappe
 import cv2
 import face_recognition
 import base64
-from io import BytesIO
 import numpy as np
-from PIL import Image
 
 @frappe.whitelist()
 def verify_face(laborer, captured_image):
-    """Compare captured image with stored images for the laborer using face_recognition."""
-    # Fetch biometric images
+    """Compare the captured image with the laborer's stored biometric images."""
     images = frappe.get_all(
         "Files for Biometric",
         filters={"laborer": laborer},
@@ -73,13 +70,13 @@ def verify_face(laborer, captured_image):
     return False  # No match found
 
 def decode_base64_image(image_base64):
-    """Convert base64 image to an OpenCV image."""
-    image_data = base64.b64decode(image_base64.split(',')[1])  # Remove "data:image/png;base64,"
+    """Convert a Base64 image to an OpenCV image."""
+    image_data = base64.b64decode(image_base64.split(',')[1])  # Remove 'data:image/png;base64,' prefix
     np_array = np.frombuffer(image_data, np.uint8)
     return cv2.imdecode(np_array, cv2.IMREAD_COLOR)
 
 def face_match(img1, img2):
-    """Use face_recognition to check if two images match."""
+    """Use face_recognition to compare two images and check if they match."""
     img1_encoding = face_recognition.face_encodings(img1)
     img2_encoding = face_recognition.face_encodings(img2)
 
@@ -88,3 +85,5 @@ def face_match(img1, img2):
         return result[0]
 
     return False
+
+
