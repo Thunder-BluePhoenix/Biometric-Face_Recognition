@@ -387,22 +387,22 @@ function cleanupCamera(stream) {
     }
 }
 
-// Update the form event to handle validation properly
-frappe.ui.form.on('Laborers attendance log', {
-    before_save: function(frm) {
-        if (!frappe.validated) {
-            // Prevent default save
-            frappe.validated = false;
+// // Update the form event to handle validation properly
+// frappe.ui.form.on('Laborers attendance log', {
+//     before_save: function(frm) {
+//         if (!frappe.validated) {
+//             // Prevent default save
+//             frappe.validated = false;
             
-            // Open camera popup for verification
-            openCameraPopup(frm);
+//             // Open camera popup for verification
+//             openCameraPopup(frm);
             
-            // Return false to prevent form submission
-            return false;
-        }
-        // If already validated, allow save to proceed
-        return true;
-    }
-});
+//             // Return false to prevent form submission
+//             return false;
+//         }
+//         // If already validated, allow save to proceed
+//         return true;
+//     }
+// });
 
 
