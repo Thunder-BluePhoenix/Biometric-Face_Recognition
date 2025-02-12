@@ -1,4 +1,4 @@
-frappe.ui.form.on('Laborers Attendance Log', {
+frappe.ui.form.on('Laborers attendance log', {
     before_save: function(frm) {
         open_camera_popup(frm);
     }
