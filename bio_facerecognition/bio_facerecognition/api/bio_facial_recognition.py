@@ -67,15 +67,20 @@ def verify_face(laborer, captured_image):
                 try:
                     stored_img = decode_base64_image(images[0][img_field])
                     if face_match(captured_img, stored_img):
-                        return True  # Match found
+                        frappe.logger().debug("Face match found!")
+                        return True
                 except Exception as e:
                     frappe.log_error(f"Error processing {img_field}: {str(e)}")
                     continue
 
-        return False  # No match found
+        frappe.logger().debug("No face match found in any stored images")
+        return False
+        
     except Exception as e:
         frappe.log_error(f"Face verification error: {str(e)}")
         frappe.throw("Error during face verification. Please try again.")
+
+
 
 def decode_base64_image(image_base64):
     """Convert a Base64 image to an OpenCV image."""
@@ -99,28 +104,45 @@ def face_match(img1, img2):
         img1_rgb = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
         img2_rgb = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
         
-        # Get face encodings
-        img1_encoding = face_recognition.face_encodings(img1_rgb)
-        img2_encoding = face_recognition.face_encodings(img2_rgb)
+        # Get face locations first
+        img1_face_locations = face_recognition.face_locations(img1_rgb)
+        img2_face_locations = face_recognition.face_locations(img2_rgb)
+        
+        if not img1_face_locations or not img2_face_locations:
+            frappe.logger().debug("No faces found in one or both images")
+            return False
+        
+        # Get face encodings with more robust parameters
+        img1_encoding = face_recognition.face_encodings(
+            img1_rgb, 
+            img1_face_locations, 
+            num_jitters=100,  # More jitters for better accuracy
+            model="large"     # Using the more accurate CNN model
+        )
+        
+        img2_encoding = face_recognition.face_encodings(
+            img2_rgb, 
+            img2_face_locations,
+            num_jitters=100,
+            model="large"
+        )
 
         if img1_encoding and img2_encoding:
-            # Increased tolerance from 0.5 to 0.6 for better matching
-            # Lower numbers are more strict, higher numbers are more lenient
-            result = face_recognition.compare_faces([img1_encoding[0]], img2_encoding[0], tolerance=0.6)
-            
-            # Get the face distance to provide more detailed matching information
+            # Get the face distance
             distance = face_recognition.face_distance([img1_encoding[0]], img2_encoding[0])
             frappe.logger().debug(f"Face match distance: {distance}")
             
-            return result[0]
-
-        # Log if no faces were found
-        if not img1_encoding:
-            frappe.logger().debug("No face found in captured image")
-        if not img2_encoding:
-            frappe.logger().debug("No face found in stored image")
+            # Compare faces with slightly higher tolerance
+            result = face_recognition.compare_faces(
+                [img1_encoding[0]], 
+                img2_encoding[0], 
+                tolerance=0.6  # Slightly increased tolerance
+            )
             
+            return result[0]
+        
         return False
+        
     except Exception as e:
         frappe.log_error(f"Face matching error: {str(e)}")
         return False
