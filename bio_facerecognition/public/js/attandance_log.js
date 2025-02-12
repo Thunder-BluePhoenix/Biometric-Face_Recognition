@@ -164,15 +164,15 @@
 
 
 
-frappe.ui.form.on('Laborers attendance log', {
-    before_save: function(frm) {
-        // Prevent default save
-        frappe.validated = false;
+// frappe.ui.form.on('Laborers attendance log', {
+//     before_save: function(frm) {
+//         // Prevent default save
+//         frappe.validated = false;
         
-        // Open camera popup for verification
-        openCameraPopup(frm);
-    }
-});
+//         // Open camera popup for verification
+//         openCameraPopup(frm);
+//     }
+// });
 
 function openCameraPopup(frm) {
     let stream = null;
@@ -303,10 +303,31 @@ async function captureAndVerifyImage(frm, popup, stream) {
                             indicator: 'green'
                         });
                         
-                        // Enable form saving and save
-                        frappe.validated = true;
+                        // Clean up camera stream before closing popup
+                        cleanupCamera(stream);
+                        
+                        // Close the popup
                         popup.hide();
-                        frm.save();
+                        
+                        // Enable form saving
+                        frappe.validated = true;
+                        
+                        // Use timeout to ensure popup is closed before saving
+                        setTimeout(() => {
+                            // Save the form
+                            frm.save().then(() => {
+                                frappe.show_alert({
+                                    message: "Record saved successfully",
+                                    indicator: 'green'
+                                });
+                            }).catch((err) => {
+                                frappe.show_alert({
+                                    message: "Error saving record: " + (err.message || "Unknown error"),
+                                    indicator: 'red'
+                                });
+                            });
+                        }, 100);
+                        
                         resolve();
                     } else {
                         handleVerificationFailure(popup, video, capturedImage, loaderElement, stream);
@@ -321,7 +342,6 @@ async function captureAndVerifyImage(frm, popup, stream) {
                     });
                     reject(err);
                 }
-                
             });
         });
     } catch (error) {
@@ -330,24 +350,59 @@ async function captureAndVerifyImage(frm, popup, stream) {
     }
 }
 
-function handleVerificationFailure(popup, video, capturedImage, loaderElement, stream) {
-    frappe.show_alert({
-        message: "Face verification failed. Please try again.",
-        indicator: 'red'
-    });
-    
-    // Reset UI
-    loaderElement.style.display = "none";
-    popup.get_primary_btn().prop('disabled', false);
-    video.style.display = "block";
-    capturedImage.style.display = "none";
-    
-    // Reinitialize camera
-    initializeCamera().then(newStream => {
-        cleanupCamera(stream);
-        stream = newStream;
-    }).catch(error => {
-        frappe.throw("Error restarting camera: " + error.message);
-    });
+// Update the cleanup function to be more thorough
+function cleanupCamera(stream) {
+    try {
+        // Stop all tracks in the stream
+        if (stream && stream.getTracks) {
+            stream.getTracks().forEach(track => {
+                try {
+                    track.stop();
+                } catch (e) {
+                    console.error("Error stopping track:", e);
+                }
+            });
+        }
+        
+        // Clear video element
+        const video = document.querySelector("#camera");
+        if (video) {
+            video.srcObject = null;
+            video.load(); // Force reload to clear any cached frames
+        }
+        
+        // Clear captured image
+        const capturedImage = document.querySelector("#captured_image");
+        if (capturedImage) {
+            capturedImage.src = '';
+        }
+        
+        // Hide loader if visible
+        const loader = document.querySelector("#verification_loader");
+        if (loader) {
+            loader.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error in cleanupCamera:", error);
+    }
 }
+
+// Update the form event to handle validation properly
+frappe.ui.form.on('Laborers attendance log', {
+    before_save: function(frm) {
+        if (!frappe.validated) {
+            // Prevent default save
+            frappe.validated = false;
+            
+            // Open camera popup for verification
+            openCameraPopup(frm);
+            
+            // Return false to prevent form submission
+            return false;
+        }
+        // If already validated, allow save to proceed
+        return true;
+    }
+});
+
 
