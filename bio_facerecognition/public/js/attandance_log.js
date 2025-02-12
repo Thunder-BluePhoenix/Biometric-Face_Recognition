@@ -339,6 +339,18 @@ async function captureAndVerifyImage(frm, popup, stream) {
     }
 }
 
+function handleVerificationFailure(popup, video, capturedImage, loaderElement, stream) {
+    // Reset UI elements
+    if (video) video.style.display = "block";
+    if (capturedImage) capturedImage.style.display = "none";
+    if (loaderElement) loaderElement.style.display = "none";
+    
+    // Re-enable the capture button
+    if (popup) {
+        popup.get_primary_btn().prop('disabled', false);
+    }
+}
+
 
 // Update the cleanup function to be more thorough
 function cleanupCamera(stream) {
