@@ -299,6 +299,11 @@ async function captureAndVerifyImage(frm, popup, stream) {
         loaderElement.style.display = "block";
         popup.get_primary_btn().prop('disabled', true);
 
+        const docData = {
+            doctype: "Laborers attendance log",
+            ...frm.doc
+        };
+
         // Verify face and save document
         return new Promise((resolve, reject) => {
             frappe.call({
@@ -306,7 +311,7 @@ async function captureAndVerifyImage(frm, popup, stream) {
                 args: {
                     laborer: frm.doc.attendance_laborer,
                     captured_image: imageData,
-                    doc_data: frm.doc.name || null
+                    doc_data: docData
                 },
                 callback: function(r) {
                     if (r.message && r.message.success) {

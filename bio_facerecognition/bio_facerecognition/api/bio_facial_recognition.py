@@ -178,18 +178,19 @@ def verify_face_and_save(laborer, captured_image, doc_data):
         
         if is_verified:
             try:
-                # Create new doc if doc_data is not provided
-                # if not doc_data:
-                #     doc = frappe.new_doc("Laborers attendance log")
-                #     doc.update(frappe.parse_json(doc_data))
-                # else:
-                #     # Get existing doc
-                doc = frappe.get_doc(frappe.parse_json(doc_data))
+                # Parse the doc_data
+                doc_dict = frappe.parse_json(doc_data)
                 
-                # doc.docstatus = 1  # Submit the document
-
-                doc.save()
-                doc.db_update()
+                if not doc_dict.get("name"):
+                    # Creating new document
+                    doc = frappe.new_doc("Laborers attendance log")
+                    doc.update(doc_dict)
+                else:
+                    # Getting existing document
+                    doc = frappe.get_doc("Laborers attendance log", doc_dict.get("name"))
+                    doc.update(doc_dict)
+                
+                doc.save(ignore_permissions=True)
                 frappe.db.commit()
                 
                 return {
@@ -216,3 +217,4 @@ def verify_face_and_save(laborer, captured_image, doc_data):
             "success": False,
             "message": f"Error during process: {str(e)}"
         }
+
