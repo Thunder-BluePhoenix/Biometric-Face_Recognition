@@ -165,85 +165,124 @@
 
 
 frappe.ui.form.on('Laborers attendance log', {
-    before_save: function (frm) {
+    before_save: function(frm) {
         openCameraPopup(frm);
     }
 });
 
 function openCameraPopup(frm) {
+    let stream;  // Store stream reference for cleanup
     let popup = new frappe.ui.Dialog({
         title: "Face Verification",
         fields: [
             {
-                fieldname: "camera",
+                fieldname: "camera_container",
                 fieldtype: "HTML",
-                options: '<video id="camera" width="320" height="240" autoplay></video>'
-            },
-            {
-                fieldname: "captured_image_display",
-                fieldtype: "HTML",
-                options: '<img id="captured_image" style="display:none; max-width:320px; max-height:240px; border:1px solid #ddd; margin-top:10px;"/>'
+                options: `
+                    <div id="camera_wrapper">
+                        <video id="camera" width="320" height="240" autoplay></video>
+                        <img id="captured_image" style="display:none; max-width:320px; max-height:240px; border:1px solid #ddd; margin-top:10px;"/>
+                    </div>`
             }
         ],
         primary_action_label: "Capture & Verify",
-        primary_action: function () {
-            captureAndVerifyImage(frm, popup);
+        primary_action: function() {
+            captureAndVerifyImage(frm, popup, stream);
+        },
+        onhide: function() {
+            // Stop the camera stream when dialog is closed
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
         }
     });
 
     popup.show();
-    startCamera();
-}
-
-function startCamera() {
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(function (stream) {
-            let video = document.querySelector("#camera");
-            if (video) {
-                video.srcObject = stream;
-                video.play();
-            } else {
-                console.error("Video element not found.");
-            }
-        })
-        .catch(function (err) {
-            console.error("Error accessing the camera: ", err);
-        });
-}
-
-function captureAndVerifyImage(frm, popup) {
-    let video = document.querySelector("#camera");
-    if (!video) {
-        frappe.throw("Camera not found.");
-        return;
-    }
-
-    let canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    let context = canvas.getContext("2d");
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Convert captured image to Base64 and display it
-    let capturedImage = canvas.toDataURL("image/png");
-    document.querySelector("#captured_image").src = capturedImage;
-    document.querySelector("#captured_image").style.display = "block";
-
-    // Send image to the server for verification
-    frappe.call({
-        method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face",
-        args: {
-            laborer: frm.doc.attendance_laborer,
-            captured_image: capturedImage
-        },
-        callback: function (r) {
-            if (r.message) {
-                frappe.msgprint("Face verified successfully.");
-                popup.hide();
-                frm.save();  // Save the document
-            } else {
-                frappe.throw("Face verification failed. Please try again.");
-            }
-        }
+    startCamera().then(videoStream => {
+        stream = videoStream;
+    }).catch(error => {
+        frappe.throw("Error accessing camera: " + error.message);
     });
 }
+
+async function startCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.querySelector("#camera");
+        if (video) {
+            video.srcObject = stream;
+            await video.play();
+        }
+        return stream;
+    } catch (err) {
+        console.error("Error accessing the camera: ", err);
+        throw err;
+    }
+}
+
+function captureAndVerifyImage(frm, popup, stream) {
+    try {
+        let video = document.querySelector("#camera");
+        if (!video) {
+            frappe.throw("Camera not found.");
+            return;
+        }
+
+        let canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        let context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Stop the video stream and hide the video element
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        video.style.display = "none";
+
+        // Show captured image
+        let capturedImage = canvas.toDataURL("image/png");
+        let imgElement = document.querySelector("#captured_image");
+        imgElement.src = capturedImage;
+        imgElement.style.display = "block";
+
+        // Disable the capture button after capturing
+        popup.get_primary_btn().prop('disabled', true);
+
+        // Send image to server for verification
+        frappe.call({
+            method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face",
+            args: {
+                laborer: frm.doc.attendance_laborer,
+                captured_image: capturedImage
+            },
+            callback: function(r) {
+                if (r.message) {
+                    frappe.show_alert({
+                        message: "Face verified successfully.",
+                        indicator: 'green'
+                    });
+                    popup.hide();
+                    frm.save();
+                } else {
+                    frappe.show_alert({
+                        message: "Face verification failed. Please try again.",
+                        indicator: 'red'
+                    });
+                    popup.hide();
+                }
+            },
+            error: function(r) {
+                frappe.show_alert({
+                    message: "Error during verification. Please try again.",
+                    indicator: 'red'
+                });
+                popup.hide();
+            }
+        });
+    } catch (error) {
+        console.error("Error during capture:", error);
+        frappe.throw("Error capturing image. Please try again.");
+    }
+}
+
