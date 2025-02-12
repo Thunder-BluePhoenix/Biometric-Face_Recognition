@@ -324,4 +324,3 @@ function captureAndVerifyImage(frm, popup, stream) {
         frappe.throw("Error capturing image. Please try again.");
     }
 }
-

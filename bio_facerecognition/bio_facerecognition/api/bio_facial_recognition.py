@@ -95,14 +95,33 @@ def decode_base64_image(image_base64):
 def face_match(img1, img2):
     """Use face_recognition to compare two images and check if they match."""
     try:
-        img1_encoding = face_recognition.face_encodings(img1)
-        img2_encoding = face_recognition.face_encodings(img2)
+        # Convert images to RGB if they're in BGR format (OpenCV default)
+        img1_rgb = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
+        img2_rgb = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+        
+        # Get face encodings
+        img1_encoding = face_recognition.face_encodings(img1_rgb)
+        img2_encoding = face_recognition.face_encodings(img2_rgb)
 
         if img1_encoding and img2_encoding:
-            result = face_recognition.compare_faces([img1_encoding[0]], img2_encoding[0], tolerance=0.5)
+            # Increased tolerance from 0.5 to 0.6 for better matching
+            # Lower numbers are more strict, higher numbers are more lenient
+            result = face_recognition.compare_faces([img1_encoding[0]], img2_encoding[0], tolerance=0.6)
+            
+            # Get the face distance to provide more detailed matching information
+            distance = face_recognition.face_distance([img1_encoding[0]], img2_encoding[0])
+            frappe.logger().debug(f"Face match distance: {distance}")
+            
             return result[0]
 
+        # Log if no faces were found
+        if not img1_encoding:
+            frappe.logger().debug("No face found in captured image")
+        if not img2_encoding:
+            frappe.logger().debug("No face found in stored image")
+            
         return False
     except Exception as e:
         frappe.log_error(f"Face matching error: {str(e)}")
         return False
+
