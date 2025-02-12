@@ -60,12 +60,24 @@ def verify_face(laborer, captured_image):
         if not images:
             frappe.throw("No biometric images found for this laborer.")
 
+        # Decode captured image
         captured_img = decode_base64_image(captured_image)
 
         for img_field in ["biometric_image_1", "biometric_image_2", "biometric_image_3"]:
             if images[0].get(img_field):
                 try:
-                    stored_img = decode_base64_image(images[0][img_field])
+                    # Get the actual file content instead of just the path
+                    file_path = images[0][img_field]
+                    file_doc = frappe.get_doc("File", {"file_url": file_path})
+                    if not file_doc:
+                        continue
+                        
+                    # Get the base64 content of the stored image
+                    stored_img_base64 = file_doc.get_content()
+                    if not stored_img_base64:
+                        continue
+                        
+                    stored_img = decode_base64_image(stored_img_base64)
                     if face_match(captured_img, stored_img):
                         frappe.logger().debug("Face match found!")
                         return True
@@ -80,22 +92,31 @@ def verify_face(laborer, captured_image):
         frappe.log_error(f"Face verification error: {str(e)}")
         frappe.throw("Error during face verification. Please try again.")
 
-
-
 def decode_base64_image(image_base64):
     """Convert a Base64 image to an OpenCV image."""
     try:
         # Handle both cases: with and without data URI prefix
-        if ',' in image_base64:
-            image_data = base64.b64decode(image_base64.split(',')[1])
+        if isinstance(image_base64, str):
+            if ',' in image_base64:
+                image_data = base64.b64decode(image_base64.split(',')[1])
+            else:
+                # Check if it's already base64 encoded
+                try:
+                    image_data = base64.b64decode(image_base64)
+                except:
+                    # If not base64, try to read as file content
+                    image_data = image_base64.encode('utf-8')
         else:
-            image_data = base64.b64decode(image_base64)
+            # If bytes, use directly
+            image_data = image_base64
             
         np_array = np.frombuffer(image_data, np.uint8)
         return cv2.imdecode(np_array, cv2.IMREAD_COLOR)
     except Exception as e:
         frappe.log_error(f"Base64 decode error: {str(e)}")
         raise
+
+
 
 def face_match(img1, img2):
     """Use face_recognition to compare two images and check if they match."""
