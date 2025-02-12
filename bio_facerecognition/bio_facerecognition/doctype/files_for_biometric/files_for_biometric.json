@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-12 21:16:41.734387",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "laborer",
+  "laborer_name",
+  "column_break_dzytu",
+  "biometric_image_1",
+  "biometric_image_2",
+  "biometric_image_3",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "laborer",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Laborer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "laborer_name",
+   "fieldtype": "Data",
+   "label": "Name"
+  },
+  {
+   "fieldname": "column_break_dzytu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "biometric_image_1",
+   "fieldtype": "Attach Image",
+   "label": "Image 1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "biometric_image_2",
+   "fieldtype": "Attach Image",
+   "label": "Image 2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "biometric_image_3",
+   "fieldtype": "Attach Image",
+   "label": "Image 3",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Files for Biometric",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-02-12 21:17:47.991141",
+ "modified_by": "Administrator",
+ "module": "Bio Facerecognition",
+ "name": "Files for Biometric",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
