@@ -166,6 +166,10 @@
 
 frappe.ui.form.on('Laborers attendance log', {
     before_save: function(frm) {
+        // Prevent default save
+        frappe.validated = false;
+        
+        // Open camera popup for verification
         openCameraPopup(frm);
     }
 });
@@ -182,6 +186,14 @@ function openCameraPopup(frm) {
                     <div id="camera_wrapper">
                         <video id="camera" width="320" height="240" autoplay></video>
                         <img id="captured_image" style="display:none; max-width:320px; max-height:240px; border:1px solid #ddd; margin-top:10px;"/>
+                        <div id="verification_loader" style="display:none; text-align:center; margin-top:10px;">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped active" role="progressbar" 
+                                     aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%">
+                                    Verifying...
+                                </div>
+                            </div>
+                        </div>
                     </div>`
             }
         ],
@@ -240,13 +252,15 @@ function captureAndVerifyImage(frm, popup, stream) {
         }
         video.style.display = "none";
 
-        // Show captured image
+        // Show captured image and loader
         let capturedImage = canvas.toDataURL("image/png");
         let imgElement = document.querySelector("#captured_image");
+        let loaderElement = document.querySelector("#verification_loader");
         imgElement.src = capturedImage;
         imgElement.style.display = "block";
+        loaderElement.style.display = "block";
 
-        // Disable the capture button after capturing
+        // Disable the capture button during verification
         popup.get_primary_btn().prop('disabled', true);
 
         // Send image to server for verification
@@ -263,13 +277,27 @@ function captureAndVerifyImage(frm, popup, stream) {
                         indicator: 'green'
                     });
                     popup.hide();
+                    
+                    // Re-enable form saving and trigger save
+                    frappe.validated = true;
                     frm.save();
                 } else {
                     frappe.show_alert({
                         message: "Face verification failed. Please try again.",
                         indicator: 'red'
                     });
-                    popup.hide();
+                    // Hide loader and enable capture button for retry
+                    loaderElement.style.display = "none";
+                    popup.get_primary_btn().prop('disabled', false);
+                    video.style.display = "block";
+                    imgElement.style.display = "none";
+                    
+                    // Restart camera for retry
+                    startCamera().then(videoStream => {
+                        stream = videoStream;
+                    }).catch(error => {
+                        frappe.throw("Error accessing camera: " + error.message);
+                    });
                 }
             },
             error: function(r) {
@@ -277,7 +305,18 @@ function captureAndVerifyImage(frm, popup, stream) {
                     message: "Error during verification. Please try again.",
                     indicator: 'red'
                 });
-                popup.hide();
+                // Hide loader and enable capture button for retry
+                loaderElement.style.display = "none";
+                popup.get_primary_btn().prop('disabled', false);
+                video.style.display = "block";
+                imgElement.style.display = "none";
+                
+                // Restart camera for retry
+                startCamera().then(videoStream => {
+                    stream = videoStream;
+                }).catch(error => {
+                    frappe.throw("Error accessing camera: " + error.message);
+                });
             }
         });
     } catch (error) {
