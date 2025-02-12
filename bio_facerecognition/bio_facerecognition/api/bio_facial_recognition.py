@@ -169,7 +169,6 @@ def face_match(img1, img2):
         return False
 
 
-
 @frappe.whitelist()
 def verify_face_and_save(laborer, captured_image, doc_data):
     """Verify face and save document if verification is successful."""
@@ -178,18 +177,33 @@ def verify_face_and_save(laborer, captured_image, doc_data):
         is_verified = verify_face(laborer, captured_image)
         
         if is_verified:
-            # Get the document to save
-            doc = frappe.get_doc("Laborers attendance log", doc_data)
-            
-            # Save the document
-            doc.save(ignore_permissions=True)
-            
-            frappe.db.commit()
-            
-            return {
-                "success": True,
-                "message": "Face verified and attendance logged successfully"
-            }
+            try:
+                # Create new doc if doc_data is not provided
+                # if not doc_data:
+                #     doc = frappe.new_doc("Laborers attendance log")
+                #     doc.update(frappe.parse_json(doc_data))
+                # else:
+                #     # Get existing doc
+                doc = frappe.get_doc(frappe.parse_json(doc_data))
+                
+                # doc.docstatus = 1  # Submit the document
+
+                doc.save()
+                doc.db_update()
+                frappe.db.commit()
+                
+                return {
+                    "success": True,
+                    "message": "Face verified and attendance logged successfully",
+                    "doc_name": doc.name
+                }
+            except Exception as e:
+                frappe.db.rollback()
+                frappe.log_error(f"Document save error: {str(e)}")
+                return {
+                    "success": False,
+                    "message": f"Face verified but failed to save: {str(e)}"
+                }
         else:
             return {
                 "success": False,
@@ -202,4 +216,3 @@ def verify_face_and_save(laborer, captured_image, doc_data):
             "success": False,
             "message": f"Error during process: {str(e)}"
         }
-
