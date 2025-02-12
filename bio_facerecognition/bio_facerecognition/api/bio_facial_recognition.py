@@ -41,15 +41,18 @@
 #     else:
 #         return "not_verified"
 
-
 import frappe
-from PIL import Image
+import cv2
+import face_recognition
 import base64
 from io import BytesIO
+import numpy as np
+from PIL import Image
 
 @frappe.whitelist()
 def verify_face(laborer, captured_image):
-    """Compare captured image with the three stored images for the laborer."""
+    """Compare captured image with stored images for the laborer using face_recognition."""
+    # Fetch biometric images
     images = frappe.get_all(
         "Files for Biometric",
         filters={"laborer": laborer},
@@ -59,31 +62,29 @@ def verify_face(laborer, captured_image):
     if not images:
         frappe.throw("No biometric images found for this laborer.")
 
-    captured_img = load_image(captured_image)
+    captured_img = decode_base64_image(captured_image)
 
     for img_field in ["biometric_image_1", "biometric_image_2", "biometric_image_3"]:
         if images[0].get(img_field):
-            stored_img = load_image(images[0][img_field])
-            if compare_images(captured_img, stored_img):
+            stored_img = decode_base64_image(images[0][img_field])
+            if face_match(captured_img, stored_img):
                 return True  # Match found
 
     return False  # No match found
 
-def load_image(image_base64):
-    """Convert base64 image to PIL Image object."""
-    if "," in image_base64:
-        image_base64 = image_base64.split(",")[1]  # Remove "data:image/png;base64," if present
-    image_data = base64.b64decode(image_base64)
-    return Image.open(BytesIO(image_data))
+def decode_base64_image(image_base64):
+    """Convert base64 image to an OpenCV image."""
+    image_data = base64.b64decode(image_base64.split(',')[1])  # Remove "data:image/png;base64,"
+    np_array = np.frombuffer(image_data, np.uint8)
+    return cv2.imdecode(np_array, cv2.IMREAD_COLOR)
 
-def compare_images(img1, img2):
-    """Basic pixel-by-pixel comparison for image similarity."""
-    img1 = img1.resize((100, 100)).convert('L')  # Resize and convert to grayscale
-    img2 = img2.resize((100, 100)).convert('L')
-    
-    # Calculate the difference between images
-    diff = sum(abs(a - b) for a, b in zip(img1.getdata(), img2.getdata()))
-    
-    # Threshold for determining if images are similar (lower is stricter)
-    return diff < 5000
+def face_match(img1, img2):
+    """Use face_recognition to check if two images match."""
+    img1_encoding = face_recognition.face_encodings(img1)
+    img2_encoding = face_recognition.face_encodings(img2)
 
+    if img1_encoding and img2_encoding:
+        result = face_recognition.compare_faces([img1_encoding[0]], img2_encoding[0], tolerance=0.5)
+        return result[0]
+
+    return False

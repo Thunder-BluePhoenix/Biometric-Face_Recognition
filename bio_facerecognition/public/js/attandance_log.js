@@ -182,7 +182,7 @@ function openCameraPopup(frm) {
         ],
         primary_action_label: "Capture & Verify",
         primary_action: function () {
-            captureAndSaveImage(frm, popup);
+            captureAndVerifyImage(frm, popup);
         }
     });
 
@@ -206,7 +206,7 @@ function startCamera() {
         });
 }
 
-function captureAndSaveImage(frm, popup) {
+function captureAndVerifyImage(frm, popup) {
     let video = document.querySelector("#camera");
     if (!video) {
         frappe.throw("Camera not found.");
@@ -221,26 +221,7 @@ function captureAndSaveImage(frm, popup) {
 
     let capturedImage = canvas.toDataURL("image/png"); // Base64 encoded image
 
-    // Save the image to the custom_image field
-    frappe.call({
-        method: "frappe.client.set_value",
-        args: {
-            doctype: frm.doctype,
-            name: frm.doc.name,
-            fieldname: "custom_image",
-            value: capturedImage
-        },
-        callback: function (r) {
-            if (!r.exc) {
-                verifyFace(frm, capturedImage, popup);
-            } else {
-                frappe.throw("Failed to save the captured image.");
-            }
-        }
-    });
-}
-
-function verifyFace(frm, capturedImage, popup) {
+    // Call the server-side function to verify the face
     frappe.call({
         method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face",
         args: {
@@ -251,7 +232,7 @@ function verifyFace(frm, capturedImage, popup) {
             if (r.message) {
                 frappe.msgprint("Face verified successfully.");
                 popup.hide();
-                frm.save();  // Save the document if verification passes
+                frm.save();  // Save the document if verification is successful
             } else {
                 frappe.throw("Face verification failed. Please try again.");
             }
