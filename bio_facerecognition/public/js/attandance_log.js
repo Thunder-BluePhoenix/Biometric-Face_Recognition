@@ -164,15 +164,15 @@
 
 
 
-// frappe.ui.form.on('Laborers attendance log', {
-//     before_save: function(frm) {
-//         // Prevent default save
-//         frappe.validated = false;
+frappe.ui.form.on('Laborers attendance log', {
+    before_save: function(frm) {
+        // Prevent default save
+        frappe.validated = false;
         
-//         // Open camera popup for verification
-//         openCameraPopup(frm);
-//     }
-// });
+        // Open camera popup for verification
+        openCameraPopup(frm);
+    }
+});
 
 function openCameraPopup(frm) {
     let stream = null;
