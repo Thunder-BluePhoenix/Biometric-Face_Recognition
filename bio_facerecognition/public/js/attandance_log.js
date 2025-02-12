@@ -173,7 +173,6 @@
 //         openCameraPopup(frm);
 //     }
 // });
-
 frappe.ui.form.on('Laborers attendance log', {
     refresh: function(frm) {
         // Disable the standard save button
@@ -186,7 +185,6 @@ frappe.ui.form.on('Laborers attendance log', {
         }).addClass('btn-primary');
     }
 });
-
 function openCameraPopup(frm) {
     let stream = null;
     let isProcessing = false;
@@ -203,7 +201,7 @@ function openCameraPopup(frm) {
                         <img id="captured_image" style="display:none; width:320px; height:240px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top:10px;"/>
                         <div id="verification_loader" style="display:none; text-align:center; margin-top:10px; width: 320px;">
                             <div class="progress">
-                                <div class="progress-bar progress-bar-striped active" role="progressbar"
+                                <div class="progress-bar progress-bar-striped active" role="progressbar" 
                                      aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%">
                                     Verifying...
                                 </div>
@@ -232,6 +230,42 @@ function openCameraPopup(frm) {
     });
 
     popup.show();
+}
+
+async function initializeCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 320 },
+                height: { ideal: 240 },
+                facingMode: "user"
+            } 
+        });
+        
+        const video = document.querySelector("#camera");
+        if (!video) throw new Error("Video element not found");
+        
+        video.srcObject = stream;
+        return new Promise((resolve, reject) => {
+            video.onloadedmetadata = () => {
+                video.play().then(() => resolve(stream)).catch(reject);
+            };
+            video.onerror = reject;
+        });
+    } catch (err) {
+        console.error("Camera initialization error:", err);
+        throw err;
+    }
+}
+
+function cleanupCamera(stream) {
+    if (stream && stream.getTracks) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+    const video = document.querySelector("#camera");
+    if (video) {
+        video.srcObject = null;
+    }
 }
 
 async function captureAndVerifyImage(frm, popup, stream) {
@@ -272,7 +306,7 @@ async function captureAndVerifyImage(frm, popup, stream) {
                 args: {
                     laborer: frm.doc.attendance_laborer,
                     captured_image: imageData,
-                    doc_data: frm.doc
+                    doc_data: frm.doc.name || null
                 },
                 callback: function(r) {
                     if (r.message && r.message.success) {
@@ -287,12 +321,8 @@ async function captureAndVerifyImage(frm, popup, stream) {
                         // Close the popup
                         popup.hide();
                         
-                        // Refresh the form or redirect to list
-                        if (r.message.doc_name) {
-                            frappe.set_route('Form', 'Laborers attendance log', r.message.doc_name);
-                        } else {
-                            frm.refresh();
-                        }
+                        // Refresh the form
+                        frm.refresh();
                         
                         resolve();
                     } else {
@@ -331,7 +361,6 @@ function handleVerificationFailure(popup, video, capturedImage, loaderElement, s
         popup.get_primary_btn().prop('disabled', false);
     }
 }
-
 
 
 // Update the cleanup function to be more thorough
