@@ -49,20 +49,16 @@ from io import BytesIO
 
 @frappe.whitelist()
 def verify_face(laborer, captured_image):
-    """Compare the captured image with the stored images for the laborer."""
-    if not captured_image.startswith("data:image/png;base64,"):
-        frappe.throw("Invalid image format. Please try again.")
-
-    # Fetch biometric images for the laborer
+    """Compare captured image with the three stored images for the laborer."""
     images = frappe.get_all(
         "Files for Biometric",
         filters={"laborer": laborer},
         fields=["biometric_image_1", "biometric_image_2", "biometric_image_3"]
     )
-    
+
     if not images:
         frappe.throw("No biometric images found for this laborer.")
-    
+
     captured_img = load_image(captured_image)
 
     for img_field in ["biometric_image_1", "biometric_image_2", "biometric_image_3"]:
@@ -74,17 +70,20 @@ def verify_face(laborer, captured_image):
     return False  # No match found
 
 def load_image(image_base64):
-    """Convert base64 image to a PIL Image object."""
-    image_data = base64.b64decode(image_base64.split(',')[1])  # Remove "data:image/png;base64,"
+    """Convert base64 image to PIL Image object."""
+    if "," in image_base64:
+        image_base64 = image_base64.split(",")[1]  # Remove "data:image/png;base64," if present
+    image_data = base64.b64decode(image_base64)
     return Image.open(BytesIO(image_data))
 
 def compare_images(img1, img2):
-    """Compare two images pixel by pixel for similarity."""
+    """Basic pixel-by-pixel comparison for image similarity."""
     img1 = img1.resize((100, 100)).convert('L')  # Resize and convert to grayscale
     img2 = img2.resize((100, 100)).convert('L')
     
+    # Calculate the difference between images
     diff = sum(abs(a - b) for a, b in zip(img1.getdata(), img2.getdata()))
-    threshold = 5000  # Adjust threshold for stricter or more lenient matching
-    return diff < threshold
-
+    
+    # Threshold for determining if images are similar (lower is stricter)
+    return diff < 5000
 

@@ -166,7 +166,6 @@
 
 frappe.ui.form.on('Laborers attendance log', {
     before_save: function (frm) {
-        frappe.validated = false;  // Prevent form save
         openCameraPopup(frm);
     }
 });
@@ -183,7 +182,7 @@ function openCameraPopup(frm) {
         ],
         primary_action_label: "Capture & Verify",
         primary_action: function () {
-            captureAndVerifyImage(frm, popup);
+            captureAndSaveImage(frm, popup);
         }
     });
 
@@ -197,17 +196,17 @@ function startCamera() {
             let video = document.querySelector("#camera");
             if (video) {
                 video.srcObject = stream;
+                video.play();
             } else {
                 console.error("Video element not found.");
             }
         })
         .catch(function (err) {
             console.error("Error accessing the camera: ", err);
-            frappe.msgprint("Unable to access the camera. Please check permissions.");
         });
 }
 
-function captureAndVerifyImage(frm, popup) {
+function captureAndSaveImage(frm, popup) {
     let video = document.querySelector("#camera");
     if (!video) {
         frappe.throw("Camera not found.");
@@ -220,8 +219,28 @@ function captureAndVerifyImage(frm, popup) {
     let context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    let capturedImage = canvas.toDataURL("image/png");  // Base64 encoded image
+    let capturedImage = canvas.toDataURL("image/png"); // Base64 encoded image
 
+    // Save the image to the custom_image field
+    frappe.call({
+        method: "frappe.client.set_value",
+        args: {
+            doctype: frm.doctype,
+            name: frm.doc.name,
+            fieldname: "custom_image",
+            value: capturedImage
+        },
+        callback: function (r) {
+            if (!r.exc) {
+                verifyFace(frm, capturedImage, popup);
+            } else {
+                frappe.throw("Failed to save the captured image.");
+            }
+        }
+    });
+}
+
+function verifyFace(frm, capturedImage, popup) {
     frappe.call({
         method: "bio_facerecognition.bio_facerecognition.api.bio_facial_recognition.verify_face",
         args: {
@@ -231,8 +250,8 @@ function captureAndVerifyImage(frm, popup) {
         callback: function (r) {
             if (r.message) {
                 frappe.msgprint("Face verified successfully.");
-                frappe.validated = true;  // Allow form save
                 popup.hide();
+                frm.save();  // Save the document if verification passes
             } else {
                 frappe.throw("Face verification failed. Please try again.");
             }
