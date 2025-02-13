@@ -331,7 +331,7 @@ async function captureAndVerifyImage(frm, popup, stream) {
 
                         
                         resolve();
-                        frm.doc.save()
+                        frm.save()
                     } else {
                         handleVerificationFailure(popup, video, capturedImage, loaderElement, stream);
                         frappe.show_alert({
