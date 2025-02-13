@@ -179,7 +179,7 @@ frappe.ui.form.on('Laborers attendance log', {
         // frm.disable_save();
         
         // Add custom button for verify and save
-        frm.add_custom_button(__('Verify and Save'), function() {
+        frm.add_custom_button(__('Verify'), function() {
             // Open camera popup for verification
             openCameraPopup(frm);
         }).addClass('btn-primary');
@@ -328,8 +328,10 @@ async function captureAndVerifyImage(frm, popup, stream) {
                         frm.doc.custom_is_verify = 1;
                         // Refresh the form
                         frm.refresh();
+
                         
                         resolve();
+                        frm.doc.save()
                     } else {
                         handleVerificationFailure(popup, video, capturedImage, loaderElement, stream);
                         frappe.show_alert({
