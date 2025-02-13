@@ -176,10 +176,10 @@
 frappe.ui.form.on('Laborers attendance log', {
     refresh: function(frm) {
         // Disable the standard save button
-        // frm.disable_save();
+        frm.disable_save();
         
         // Add custom button for verify and save
-        frm.add_custom_button(__('Verify'), function() {
+        frm.add_custom_button(__('Verify And Save'), function() {
             // Open camera popup for verification
             openCameraPopup(frm);
         }).addClass('btn-primary');
