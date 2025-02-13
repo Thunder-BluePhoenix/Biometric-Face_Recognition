@@ -176,7 +176,7 @@
 frappe.ui.form.on('Laborers attendance log', {
     refresh: function(frm) {
         // Disable the standard save button
-        frm.disable_save();
+        // frm.disable_save();
         
         // Add custom button for verify and save
         frm.add_custom_button(__('Verify and Save'), function() {
@@ -325,7 +325,7 @@ async function captureAndVerifyImage(frm, popup, stream) {
                         
                         // Close the popup
                         popup.hide();
-                        
+                        frm.doc.custom_is_verify = 1;
                         // Refresh the form
                         frm.refresh();
                         

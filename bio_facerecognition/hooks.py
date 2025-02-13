@@ -124,6 +124,12 @@ doctype_js = {"Laborers attendance log" : "public/js/attandance_log.js"}
 # 	}
 # }
 
+doc_events = {
+    "Laborers attendance log": {
+        "before_save": "bio_facerecognition.override.laborers_attendance_log.check_verifed"
+}
+}
+
 # Scheduled Tasks
 # ---------------
 

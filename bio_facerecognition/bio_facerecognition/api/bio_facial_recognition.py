@@ -172,49 +172,53 @@ def face_match(img1, img2):
 @frappe.whitelist()
 def verify_face_and_save(laborer, captured_image, doc_data):
     """Verify face and save document if verification is successful."""
-    try:
+    # try:
         # First verify the face
-        is_verified = verify_face(laborer, captured_image)
+    is_verified = verify_face(laborer, captured_image)
         
-        if is_verified:
-            try:
-                # Parse the doc_data
-                doc_dict = frappe.parse_json(doc_data)
+    if is_verified:
+        #      try:
+        #         # Parse the doc_data
+        #         doc_dict = frappe.parse_json(doc_data)
                 
-                if not doc_dict.get("name"):
-                    # Creating new document
-                    doc = frappe.new_doc("Laborers attendance log")
-                    doc.update(doc_dict)
-                else:
-                    # Getting existing document
-                    doc = frappe.get_doc("Laborers attendance log", doc_dict.get("name"))
-                    doc.update(doc_dict)
+        #         if not doc_dict.get("name"):
+        #             # Creating new document
+        #             doc = frappe.new_doc("Laborers attendance log")
+        #             doc.update(doc_dict)
+        #         else:
+        #             # Getting existing document
+        #             doc = frappe.get_doc("Laborers attendance log", doc_dict.get("name"))
+        #             doc.update(doc_dict)
                 
-                doc.save(ignore_permissions=True)
-                frappe.db.commit()
+        #         doc.save(ignore_permissions=True)
+        #         frappe.db.commit()
                 
-                return {
-                    "success": True,
-                    "message": "Face verified and attendance logged successfully",
-                    "doc_name": doc.name
-                }
-            except Exception as e:
-                frappe.db.rollback()
-                frappe.log_error(f"Document save error: {str(e)}")
-                return {
-                    "success": False,
-                    "message": f"Face verified but failed to save: {str(e)}"
-                }
-        else:
-            return {
-                "success": False,
-                "message": "Face verification failed"
-            }
-            
-    except Exception as e:
-        frappe.log_error(f"Face verification and save error: {str(e)}")
+        #         return {
+        #             "success": True,
+        #             "message": "Face verified and attendance logged successfully",
+        #             "doc_name": doc.name
+        #         }
+        #     except Exception as e:
+        #         frappe.db.rollback()
+        #         frappe.log_error(f"Document save error: {str(e)}")
+        #         return {
+        #             "success": False,
+        #             "message": f"Face verified but failed to save: {str(e)}"
+        #         }
+        return {
+            "success": True,
+            "message": "Face verified Successfully"
+        }
+    else:
         return {
             "success": False,
-            "message": f"Error during process: {str(e)}"
+            "message": "Face verification failed"
         }
+            
+    # except Exception as e:
+    #     frappe.log_error(f"Face verification and save error: {str(e)}")
+    #     return {
+    #         "success": False,
+    #         "message": f"Error during process: {str(e)}"
+    #     }
 
